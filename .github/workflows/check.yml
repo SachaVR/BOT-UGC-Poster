@@ -1,0 +1,41 @@
+name: Check UGC Posters
+
+# 1. DÉCLENCHEMENT DU SCRIPT
+on:
+  schedule:
+    # Syntaxe Cron : s'exécute toutes les 15 minutes
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Permet aussi de lancer le script manuellement depuis GitHub
+
+# 2. LES ACTIONS À EXÉCUTER
+jobs:
+  build:
+    runs-on: ubuntu-latest # GitHub ouvre une machine virtuelle Linux gratuite
+    
+    steps:
+      # Étape A : GitHub télécharge le code de ton dépôt sur sa machine
+      - name: Récupérer le code
+        uses: actions/checkout@v3
+
+      # Étape B : GitHub installe Python 3.10 sur sa machine
+      - name: Configurer Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # Étape C : GitHub installe les bibliothèques nécessaires
+      - name: Installer les dépendances
+        run: |
+          pip install requests beautifulsoup4
+
+      # Étape D : GitHub lance ton script en lui injectant la clé secrète Discord
+      - name: Exécuter le script
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python bot_ugc.py
+
+      # Étape E : Enregistre le fichier JSON modifié sur ton GitHub
+      - name: Sauvegarder l'état
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "Mise à jour de l'état du stock"
