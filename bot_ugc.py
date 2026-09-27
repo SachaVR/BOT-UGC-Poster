@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 
 URL_CATALOGUE = "https://fidelite.ugc.fr/catalogue-cadeaux.html"
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
+DISCORD_ROLE_ID = os.getenv("DISCORD_ROLE_ID")  # Optionnel : ID du rôle Discord à mentionner
 STATE_FILE = "posters_state.json"
 
 HEADERS = {
@@ -20,7 +21,7 @@ def send_discord_embed(title, release_date, image_url, points):
     embed = {
         "title": f"🚨 ALERTE POSTER : {title}",
         "url": URL_CATALOGUE,
-        "color": 15158332,  # Rouge UGC (Code Hex #E74C3C en entier)
+        "color": 15158332,  # Rouge UGC (#E74C3C)
         "description": "Un poster de film vient de repasser en stock sur le catalogue de fidélité !",
         "fields": [
             {
@@ -29,23 +30,43 @@ def send_discord_embed(title, release_date, image_url, points):
                 "inline": True
             },
             {
-                "name": "🪙 Cout",
+                "name": "🪙 Coût",
                 "value": points if points else "250 points",
                 "inline": True
             }
         ],
-        "image": {
-            "url": image_url
-        } if image_url else {},
         "footer": {
             "text": "UGC Loyalty Monitor • Notification automatique"
         }
     }
 
+    if image_url:
+        embed["image"] = {"url": image_url}
+
+    # Ajout du bouton d'action sous le message Discord
+    components = [
+        {
+            "type": 1,  # Action Row
+            "components": [
+                {
+                    "type": 2,  # Button
+                    "label": "Voir sur le site UGC",
+                    "style": 5,  # Link button
+                    "url": URL_CATALOGUE
+                }
+            ]
+        }
+    ]
+
+    # Contenu texte (mention de rôle facultative)
+    content = f"<@&{DISCORD_ROLE_ID}> 🎬 NOUVELLE AFFICHE DISPONIBLE !" if DISCORD_ROLE_ID else "🎬 NOUVELLE AFFICHE DISPONIBLE !"
+
     payload = {
         "username": "UGC Poster Bot",
         "avatar_url": "https://www.ugc.fr/favicon.ico",
-        "embeds": [embed]
+        "content": content,
+        "embeds": [embed],
+        "components": components
     }
 
     try:
@@ -116,11 +137,10 @@ def check_posters():
 
     previous_state = load_previous_state()
 
-    # Déclenchement des alertes Embed
+    # Déclenchement des alertes
     for title, status in current_state.items():
         prev_status = previous_state.get(title)
 
-        # Envoi si le poster repasse DISPONIBLE ou apparaît pour la première fois DISPONIBLE
         if status == "DISPONIBLE" and prev_status != "DISPONIBLE":
             details = posters_details[title]
             send_discord_embed(
