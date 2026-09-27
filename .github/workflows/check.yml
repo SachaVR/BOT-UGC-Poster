@@ -2,7 +2,8 @@ name: Check UGC Posters
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/15 * * * *'  # Vérification toutes les 15 minutes
+    - cron: '0 22 * * *'    # Rapport quotidien à minuit (22h UTC)
   workflow_dispatch:
 
 jobs:
@@ -27,14 +28,25 @@ jobs:
         run: |
           pytest test_bot.py
 
+      # Étape 1 : Vérification normale des stocks (s'exécute à chaque cron de 15 min)
       - name: Exécuter le bot de vérification
+        if: github.event.schedule != '0 22 * * *'
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           DISCORD_ROLE_ID: ${{ secrets.DISCORD_ROLE_ID }}
         run: |
           python bot_ugc.py
 
+      # Étape 2 : Rapport journalier à minuit (s'exécute uniquement sur le cron de 22h UTC)
+      - name: Envoyer le rapport journalier
+        if: github.event.schedule == '0 22 * * *'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          python bot_ugc.py --report
+
       - name: Sauvegarder l'état sur GitHub
+        if: github.event.schedule != '0 22 * * *'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"

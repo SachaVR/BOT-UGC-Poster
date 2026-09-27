@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import time
 from datetime import datetime
@@ -14,21 +15,63 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
 
-def send_discord_alert(message, is_error=False):
-    """Envoie un message texte simple ou une alerte d'erreur sur Discord."""
+def send_daily_report():
+    """Envoie un rapport résumé de la journée à minuit sans ping."""
     if not DISCORD_WEBHOOK_URL:
         print("Erreur : URL Webhook non configurée.")
         return
 
+    previous_state = load_previous_state()
+    total_posters = len(previous_state)
+    
+    # Compte les posters disponibles
+    available_posters = [
+        title for title, data in previous_state.items() 
+        if (data.get("status") if isinstance(data, dict) else data) == "DISPONIBLE"
+    ]
+    
+    embed = {
+        "title": "📊 Rapport Journalier - Catalogue UGC",
+        "url": URL_CATALOGUE,
+        "color": 3447003,  # Bleu
+        "description": "Résumé automatique de l'état du catalogue de posters à minuit.",
+        "fields": [
+            {
+                "name": " Total suivi",
+                "value": f"{total_posters} affiches",
+                "inline": True
+            },
+            {
+                "name": "🟢 En stock",
+                "value": f"{len(available_posters)} disponible(s)",
+                "inline": True
+            }
+        ],
+        "footer": {
+            "text": "UGC Loyalty Monitor • Rapport Quotidien"
+        }
+    }
+
+    if available_posters:
+        embed["fields"].append({
+            "name": "🎬 Affiches actuellement disponibles",
+            "value": "\n".join([f"• {title}" for title in available_posters]),
+            "inline": False
+        })
+
     payload = {
         "username": "UGC Poster Bot",
         "avatar_url": "https://www.ugc.fr/favicon.ico",
-        "content": f"⚠️ **[ALERTE BOT]** {message}" if is_error else message
+        "embeds": [embed]
+        # Pas de content = pas de ping
     }
+
     try:
-        requests.post(DISCORD_WEBHOOK_URL, json=payload)
+        response = requests.post(DISCORD_WEBHOOK_URL, json=payload)
+        response.raise_for_status()
+        print("Rapport journalier envoyé avec succès.")
     except Exception as e:
-        print(f"Erreur d'envoi Discord : {e}")
+        print(f"Erreur lors de l'envoi du rapport journalier : {e}")
 
 def send_discord_embed(title, release_date, image_url, points):
     """Envoie la carte d'alerte enrichie lors d'un réassort."""
@@ -209,4 +252,8 @@ def check_posters():
     save_current_state(current_state)
 
 if __name__ == "__main__":
-    check_posters()
+    # Si le script est appelé avec le paramètre --report, on envoie le rapport
+    if len(sys.argv) > 1 and sys.argv[1] == "--report":
+        send_daily_report()
+    else:
+        check_posters()
