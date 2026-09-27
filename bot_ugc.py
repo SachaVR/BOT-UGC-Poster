@@ -1,6 +1,7 @@
 import os
 import json
 import time
+from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 
@@ -14,7 +15,7 @@ HEADERS = {
 }
 
 def send_discord_alert(message, is_error=False):
-    """Envoie un message simple ou une alerte d'erreur sur Discord."""
+    """Envoie un message texte simple ou une alerte d'erreur sur Discord."""
     if not DISCORD_WEBHOOK_URL:
         print("Erreur : URL Webhook non configurée.")
         return
@@ -37,7 +38,7 @@ def send_discord_embed(title, release_date, image_url, points):
     embed = {
         "title": f"🚨 ALERTE POSTER : {title}",
         "url": URL_CATALOGUE,
-        "color": 15158332,
+        "color": 15158332,  # Rouge UGC (#E74C3C)
         "description": "Un poster de film vient de repasser en stock sur le catalogue de fidélité !",
         "fields": [
             {
@@ -125,7 +126,6 @@ def check_posters():
     soup = BeautifulSoup(html_content, "html.parser")
     items = soup.find_all("div", class_="catalog-list-item")
 
-    # Si le site change de structure HTML et ne renvoie aucun élément
     if not items:
         print("Avertissement : Aucun article trouvé dans le catalogue.")
         send_discord_alert("Le bot n'a trouvé aucun article sur le site UGC. La structure HTML de la page a peut-être changé.", is_error=True)
@@ -134,6 +134,9 @@ def check_posters():
     KEYWORDS_POSTERS = ["affiche", "poster"]
     current_state = {}
     posters_details = {}
+    now_iso = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    previous_state = load_previous_state()
 
     for item in items:
         title_tag = item.find("h3")
@@ -160,26 +163,48 @@ def check_posters():
         else:
             status = "DISPONIBLE"
 
-        current_state[title] = status
+        # Récupération de l'ancien état s'il s'agit d'une structure complexe ou simple
+        prev_entry = previous_state.get(title)
+        if isinstance(prev_entry, dict):
+            prev_status = prev_entry.get("status")
+            last_updated = prev_entry.get("last_updated", now_iso)
+        else:
+            prev_status = prev_entry
+            last_updated = now_iso
+
+        # Si le statut change, on met à jour la date
+        if status != prev_status:
+            last_updated = now_iso
+
+        current_state[title] = {
+            "status": status,
+            "last_updated": last_updated
+        }
+
         posters_details[title] = {
             "release_date": release_date,
             "image_url": image_url,
-            "points": points
+            "points": points,
+            "prev_status": prev_status
         }
 
-    previous_state = load_previous_state()
+    # Déclenchement des notifications Discord selon l'évolution du stock
+    for title, data in current_state.items():
+        status = data["status"]
+        details = posters_details[title]
+        prev_status = details["prev_status"]
 
-    for title, status in current_state.items():
-        prev_status = previous_state.get(title)
-
+        # 1. Réassort (Nouveau ou repassé DISPONIBLE)
         if status == "DISPONIBLE" and prev_status != "DISPONIBLE":
-            details = posters_details[title]
             send_discord_embed(
                 title=title,
                 release_date=details["release_date"],
                 image_url=details["image_url"],
                 points=details["points"]
             )
+        # 2. Rupture (Repassé ÉPUISÉ)
+        elif status == "ÉPUISÉ" and prev_status == "DISPONIBLE":
+            send_discord_alert(f"❌ **RUPTURE DE STOCK** : L'affiche **{title}** est de nouveau épuisée.")
 
     save_current_state(current_state)
 
