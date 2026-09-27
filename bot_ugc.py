@@ -11,13 +11,46 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
 
-def send_discord_notification(message):
+def send_discord_embed(title, release_date, image_url, points):
     if not DISCORD_WEBHOOK_URL:
         print("Erreur : URL Webhook non configurée.")
         return
-    payload = {"content": message}
+
+    # Structure de la carte Embed Discord
+    embed = {
+        "title": f"🚨 ALERTE POSTER : {title}",
+        "url": URL_CATALOGUE,
+        "color": 15158332,  # Rouge UGC (Code Hex #E74C3C en entier)
+        "description": "Un poster de film vient de repasser en stock sur le catalogue de fidélité !",
+        "fields": [
+            {
+                "name": "📅 Date de sortie / Statut",
+                "value": release_date if release_date else "Non spécifiée",
+                "inline": True
+            },
+            {
+                "name": "🪙 Cout",
+                "value": points if points else "250 points",
+                "inline": True
+            }
+        ],
+        "image": {
+            "url": image_url
+        } if image_url else {},
+        "footer": {
+            "text": "UGC Loyalty Monitor • Notification automatique"
+        }
+    }
+
+    payload = {
+        "username": "UGC Poster Bot",
+        "avatar_url": "https://www.ugc.fr/favicon.ico",
+        "embeds": [embed]
+    }
+
     try:
-        requests.post(DISCORD_WEBHOOK_URL, json=payload)
+        response = requests.post(DISCORD_WEBHOOK_URL, json=payload)
+        response.raise_for_status()
     except Exception as e:
         print(f"Erreur d'envoi Discord : {e}")
 
@@ -40,52 +73,63 @@ def check_posters():
     soup = BeautifulSoup(response.content, "html.parser")
     items = soup.find_all("div", class_="catalog-list-item")
 
-    # Mots-clés pour ne garder QUE les cartes d'affiches
     KEYWORDS_POSTERS = ["affiche", "poster"]
-
     current_state = {}
+    posters_details = {}
 
     for item in items:
-        # Récupération du titre
+        # 1. Titre du film
         title_tag = item.find("h3")
         title = title_tag.text.strip() if title_tag else ""
 
-        if not title:
+        if not title or not any(kw in title.lower() for kw in KEYWORDS_POSTERS):
             continue
 
-        title_lower = title.lower()
+        # 2. Extraction de l'image
+        img_tag = item.find("img")
+        image_url = ""
+        if img_tag and img_tag.get("src"):
+            src = img_tag["src"]
+            image_url = src if src.startswith("http") else f"https://fidelite.ugc.fr{src}"
 
-        # Filtrage : On ne garde que les articles parlant d'affiches/posters
-        if not any(kw in title_lower for kw in KEYWORDS_POSTERS):
-            continue
+        # 3. Extraction de la date de sortie / sous-titre
+        date_tag = item.find("p") or item.find("span", class_="date")
+        release_date = date_tag.text.strip() if date_tag else "Information non disponible"
 
-        # Récupération de tout le texte dans le bloc de la carte
+        # 4. Extraction du coût en points
+        points_tag = item.find("span", class_="points") or item.find("div", class_="points")
+        points = points_tag.text.strip() if points_tag else "250 points"
+
+        # 5. Évaluation du statut
         item_text = item.text.lower()
-
-        # Analyse de la disponibilité :
-        # Si la carte contient "victime de son succès" ou la classe disabled
         if "victime de son succès" in item_text or item.find(class_="disabled"):
-            current_state[title] = "ÉPUISÉ"
+            status = "ÉPUISÉ"
         else:
-            current_state[title] = "DISPONIBLE"
+            status = "DISPONIBLE"
+
+        current_state[title] = status
+        posters_details[title] = {
+            "release_date": release_date,
+            "image_url": image_url,
+            "points": points
+        }
 
     previous_state = load_previous_state()
 
-    # Analyse des changements
+    # Déclenchement des alertes Embed
     for title, status in current_state.items():
         prev_status = previous_state.get(title)
 
-        # Poster de nouveau disponible
+        # Envoi si le poster repasse DISPONIBLE ou apparaît pour la première fois DISPONIBLE
         if status == "DISPONIBLE" and prev_status != "DISPONIBLE":
-            msg = f"🚨 **ALERTE POSTER UGC !**\nLe poster **{title}** est maintenant **DISPONIBLE** !\n👉 {URL_CATALOGUE}"
-            send_discord_notification(msg)
+            details = posters_details[title]
+            send_discord_embed(
+                title=title,
+                release_date=details["release_date"],
+                image_url=details["image_url"],
+                points=details["points"]
+            )
 
-        # Nouveau poster ajouté au catalogue directement disponible
-        elif prev_status is None and status == "DISPONIBLE":
-            msg = f"✨ **NOUVEAU POSTER !**\n**{title}** est disponible !\n👉 {URL_CATALOGUE}"
-            send_discord_notification(msg)
-
-    # Sauvegarde
     save_current_state(current_state)
 
 if __name__ == "__main__":
