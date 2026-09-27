@@ -24,6 +24,7 @@ jobs:
       - name: Exécuter le script
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_ROLE_ID: ${{ secrets.DISCORD_ROLE_ID }}
         run: python bot_ugc.py
 
       - name: Sauvegarder l'état
