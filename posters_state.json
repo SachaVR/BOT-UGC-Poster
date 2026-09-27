@@ -1,14 +1,50 @@
 {
-  "Une affiche du film PRESSURE": "ÉPUISÉ",
-  "Une affiche du film GARANCE": "ÉPUISÉ",
-  "Une affiche du film RESIDENT EVIL": "ÉPUISÉ",
-  "Une affiche au choix du film PRIMETIME": "ÉPUISÉ",
-  "Une affiche aux choix du film AVENGERS: ENDGAME EXTENDED": "ÉPUISÉ",
-  "Une affiche du film HEART OF THE BEAST": "ÉPUISÉ",
-  "Une affiche au choix du film RAISON ET SENTIMENTS": "ÉPUISÉ",
-  "Une affiche du film DIGGER": "ÉPUISÉ",
-  "Une affiche du film VERITY": "ÉPUISÉ",
-  "Une affiche au choix du film DUNE : TROISIÈME PARTIE": "ÉPUISÉ",
-  "Une affiche du film LES ENSORCELEUSES 2": "ÉPUISÉ",
-  "Une affiche du film HER PRIVATE HELL": "ÉPUISÉ"
+  "Une affiche du film PRESSURE": {
+    "status": "ÉPUISÉ",
+    "last_updated": "2026-09-27 18:55:27"
+  },
+  "Une affiche du film GARANCE": {
+    "status": "ÉPUISÉ",
+    "last_updated": "2026-09-27 18:55:27"
+  },
+  "Une affiche du film RESIDENT EVIL": {
+    "status": "ÉPUISÉ",
+    "last_updated": "2026-09-27 18:55:27"
+  },
+  "Une affiche au choix du film PRIMETIME": {
+    "status": "ÉPUISÉ",
+    "last_updated": "2026-09-27 18:55:27"
+  },
+  "Une affiche aux choix du film AVENGERS: ENDGAME EXTENDED": {
+    "status": "ÉPUISÉ",
+    "last_updated": "2026-09-27 18:55:27"
+  },
+  "Une affiche du film HEART OF THE BEAST": {
+    "status": "ÉPUISÉ",
+    "last_updated": "2026-09-27 18:55:27"
+  },
+  "Une affiche au choix du film RAISON ET SENTIMENTS": {
+    "status": "ÉPUISÉ",
+    "last_updated": "2026-09-27 18:55:27"
+  },
+  "Une affiche du film DIGGER": {
+    "status": "ÉPUISÉ",
+    "last_updated": "2026-09-27 18:55:27"
+  },
+  "Une affiche du film VERITY": {
+    "status": "ÉPUISÉ",
+    "last_updated": "2026-09-27 18:55:27"
+  },
+  "Une affiche au choix du film DUNE : TROISIÈME PARTIE": {
+    "status": "ÉPUISÉ",
+    "last_updated": "2026-09-27 18:55:27"
+  },
+  "Une affiche du film LES ENSORCELEUSES 2": {
+    "status": "ÉPUISÉ",
+    "last_updated": "2026-09-27 18:55:27"
+  },
+  "Une affiche du film HER PRIVATE HELL": {
+    "status": "ÉPUISÉ",
+    "last_updated": "2026-09-27 18:55:27"
+  }
 }
