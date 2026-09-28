@@ -1,15 +1,18 @@
-name: Check UGC Posters
+name: CI Tests
 
 on:
-  workflow_dispatch:  # Garde uniquement le déclenchement manuel en secours
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
-  # ... le reste du fichier reste inchangé
-  check-posters:
+  test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Récupérer le code du dépôt
+      - name: Récupérer le code
         uses: actions/checkout@v4
 
       - name: Configurer Python
@@ -25,28 +28,3 @@ jobs:
       - name: Exécuter les tests unitaires
         run: |
           pytest test_bot.py
-
-      # Étape 1 : Vérification normale des stocks (s'exécute à chaque cron de 15 min)
-      - name: Exécuter le bot de vérification
-        if: github.event.schedule != '0 22 * * *'
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          DISCORD_ROLE_ID: ${{ secrets.DISCORD_ROLE_ID }}
-        run: |
-          python bot_ugc.py
-
-      # Étape 2 : Rapport journalier à minuit (s'exécute uniquement sur le cron de 22h UTC)
-      - name: Envoyer le rapport journalier
-        if: github.event.schedule == '0 22 * * *'
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: |
-          python bot_ugc.py --report
-
-      - name: Sauvegarder l'état sur GitHub
-        if: github.event.schedule != '0 22 * * *'
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add posters_state.json
-          git diff --staged --quiet || (git commit -m "chore: mise a jour de l'etat des posters [skip ci]" && git push)
