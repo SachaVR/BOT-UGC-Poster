@@ -1,12 +1,10 @@
 name: Check UGC Posters
 
 on:
-  schedule:
-    - cron: '*/15 * * * *'  # Vérification toutes les 15 minutes
-    - cron: '0 22 * * *'    # Rapport quotidien à minuit (22h UTC)
-  workflow_dispatch:
+  workflow_dispatch:  # Garde uniquement le déclenchement manuel en secours
 
 jobs:
+  # ... le reste du fichier reste inchangé
   check-posters:
     runs-on: ubuntu-latest
 
